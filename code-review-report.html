@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三维数据关系图谱 — 全面代码审查报告</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: #0a0a0f;
+    color: #e0e0e6;
+    line-height: 1.7;
+    padding: 40px 20px;
+  }
+  .container { max-width: 900px; margin: 0 auto; }
+  h1 {
+    font-size: 28px; font-weight: 700; margin-bottom: 8px;
+    background: linear-gradient(135deg, #60a5fa, #38bdf8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .subtitle { color: #64748b; font-size: 14px; margin-bottom: 40px; font-family: monospace; }
+  h2 {
+    font-size: 20px; font-weight: 600; margin: 40px 0 16px;
+    color: #f1f5f9; border-left: 3px solid #3b82f6; padding-left: 12px;
+  }
+  h3 { font-size: 15px; font-weight: 600; margin: 24px 0 10px; color: #93c5fd; }
+  p { margin-bottom: 10px; color: #cbd5e1; }
+  .score-card {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0;
+  }
+  .score-item {
+    background: #13131a; border: 1px solid #1e293b; border-radius: 10px;
+    padding: 20px; transition: border-color 0.2s;
+  }
+  .score-item:hover { border-color: #3b82f6; }
+  .score-label { font-size: 13px; color: #94a3b8; margin-bottom: 8px; }
+  .score-value { font-size: 32px; font-weight: 700; font-family: monospace; }
+  .score-bar {
+    height: 6px; background: #1e293b; border-radius: 3px; margin-top: 10px; overflow: hidden;
+  }
+  .score-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+  .grade-a { color: #22c55e; } .grade-a .score-fill { background: #22c55e; }
+  .grade-b { color: #eab308; } .grade-b .score-fill { background: #eab308; }
+  .grade-c { color: #f97316; } .grade-c .score-fill { background: #f97316; }
+  .grade-d { color: #ef4444; } .grade-d .score-fill { background: #ef4444; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 16px 0;
+    font-size: 13px;
+  }
+  th {
+    background: #13131a; color: #93c5fd; font-weight: 600;
+    text-align: left; padding: 10px 12px; border-bottom: 1px solid #1e293b;
+  }
+  td {
+    padding: 10px 12px; border-bottom: 1px solid #1e293b; color: #cbd5e1;
+  }
+  tr:hover td { background: #13131a40; }
+  .issue {
+    background: #13131a; border: 1px solid #1e293b; border-left: 3px solid;
+    border-radius: 6px; padding: 14px 16px; margin: 10px 0;
+  }
+  .issue-p0 { border-left-color: #ef4444; }
+  .issue-p1 { border-left-color: #f97316; }
+  .issue-p2 { border-left-color: #eab308; }
+  .issue-p3 { border-left-color: #3b82f6; }
+  .issue-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .issue-tag {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px;
+    border-radius: 3px; margin-right: 6px; font-family: monospace;
+  }
+  .tag-p0 { background: #ef444420; color: #ef4444; }
+  .tag-p1 { background: #f9731620; color: #f97316; }
+  .tag-p2 { background: #eab30820; color: #eab308; }
+  .tag-p3 { background: #3b82f620; color: #60a5fa; }
+  .issue-detail { font-size: 13px; color: #94a3b8; }
+  code {
+    background: #1e293b; padding: 2px 6px; border-radius: 3px;
+    font-size: 12px; font-family: "JetBrains Mono", monospace; color: #f0abfc;
+  }
+  .file-ref { color: #64748b; font-size: 12px; font-family: monospace; }
+  .summary-box {
+    background: linear-gradient(135deg, #13131a, #1a1a2e); border: 1px solid #1e293b;
+    border-radius: 12px; padding: 24px; margin: 20px 0;
+  }
+  .summary-box h3 { margin-top: 0; }
+  .roadmap {
+    display: grid; grid-template-columns: 1fr; gap: 12px; margin: 16px 0;
+  }
+  .roadmap-item {
+    background: #13131a; border: 1px solid #1e293b; border-radius: 8px;
+    padding: 16px; display: flex; gap: 16px; align-items: flex-start;
+  }
+  .roadmap-phase {
+    flex-shrink: 0; width: 80px; text-align: center;
+    font-size: 11px; font-weight: 700; color: #3b82f6;
+    font-family: monospace; text-transform: uppercase;
+    padding-top: 2px;
+  }
+  .roadmap-content h4 { font-size: 14px; margin-bottom: 4px; color: #f1f5f9; }
+  .roadmap-content p { font-size: 13px; color: #94a3b8; }
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 20px 0;
+  }
+  .stat { background: #13131a; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; text-align: center; }
+  .stat-num { font-size: 24px; font-weight: 700; color: #60a5fa; font-family: monospace; }
+  .stat-label { font-size: 11px; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #1e293b; color: #475569; font-size: 12px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>三维数据关系图谱 — 全面代码审查报告</h1>
+<p class="subtitle">审查日期: 2026-06-26 · 代码量: 3,371 行 / 8 文件 · 审查范围: 全部 src/ 源码</p>
+
+<div class="stat-grid">
+  <div class="stat"><div class="stat-num">3,371</div><div class="stat-label">总行数</div></div>
+  <div class="stat"><div class="stat-num">8</div><div class="stat-label">源文件</div></div>
+  <div class="stat"><div class="stat-num">1,673</div><div class="stat-label">最大文件行数</div></div>
+  <div class="stat"><div class="stat-num">0</div><div class="stat-label">TypeScript 错误</div></div>
+</div>
+
+<!-- ========== 总评 ========== -->
+<h2>一、总评</h2>
+
+<div class="score-card">
+  <div class="score-item grade-b">
+    <div class="score-label">代码工程质量</div>
+    <div class="score-value">7.0<div style="font-size:16px;color:#64748b;display:inline"> / 10</div></div>
+    <div class="score-bar"><div class="score-fill" style="width:70%"></div></div>
+  </div>
+  <div class="score-item grade-a">
+    <div class="score-label">功能完成度</div>
+    <div class="score-value">8.5<div style="font-size:16px;color:#64748b;display:inline"> / 10</div></div>
+    <div class="score-bar"><div class="score-fill" style="width:85%"></div></div>
+  </div>
+  <div class="score-item grade-b">
+    <div class="score-label">性能与流畅度</div>
+    <div class="score-value">7.0<div style="font-size:16px;color:#64748b;display:inline"> / 10</div></div>
+    <div class="score-bar"><div class="score-fill" style="width:70%"></div></div>
+  </div>
+  <div class="score-item grade-a">
+    <div class="score-label">视觉与交互体验</div>
+    <div class="score-value">8.5<div style="font-size:16px;color:#64748b;display:inline"> / 10</div></div>
+    <div class="score-bar"><div class="score-fill" style="width:85%"></div></div>
+  </div>
+  <div class="score-item grade-c">
+    <div class="score-label">可维护性</div>
+    <div class="score-value">5.5<div style="font-size:16px;color:#64748b;display:inline"> / 10</div></div>
+    <div class="score-bar"><div class="score-fill" style="width:55%"></div></div>
+  </div>
+  <div class="score-item grade-b">
+    <div class="score-label">开源传播潜力</div>
+    <div class="score-value">7.5<div style="font-size:16px;color:#64748b;display:inline"> / 10</div></div>
+    <div class="score-bar"><div class="score-fill" style="width:75%"></div></div>
+  </div>
+</div>
+
+<div class="summary-box">
+  <h3>一句话总结</h3>
+  <p>作为一个 MVP 阶段的开源可视化项目，<strong>视觉表现力强、核心功能闭环完整、传播链路设计合理</strong>。主要短板在 <strong>Graph3DCanvas.tsx 过度膨胀（1673行 God 组件）</strong>、类型安全薄弱（大量 <code>any</code>）、以及渲染循环中仍存在每帧分配/全量更新的残留。这些问题不影响当前运行，但会在后续迭代中指数级增加维护成本。</p>
+</div>
+
+<!-- ========== 功能模块打分 ========== -->
+<h2>二、功能模块打分</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:22%">模块</th>
+      <th style="width:10%">评分</th>
+      <th style="width:34%">优点</th>
+      <th>主要问题</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>3D 粒子渲染核心<br><span class="file-ref">Graph3DCanvas.tsx</span></td>
+      <td><strong style="color:#eab308">7.5</strong></td>
+      <td>InstancedMesh 批量渲染、LOD 分级、视锥剔除、Additive 发光、星云按颜色隐藏——视觉效果到位</td>
+      <td>God 组件 1673 行；渲染循环 360+ 行内联；大量 <code>any</code> 类型；每帧分配 Uint8Array/Set</td>
+    </tr>
+    <tr>
+      <td>力导向布局<br><span class="file-ref">computeForceLayout()</span></td>
+      <td><strong style="color:#22c55e">8.0</strong></td>
+      <td>自实现 3D Coulomb + Spring + Center pull，支持位置记忆（切换数据集不跳变），category 锚点形成自然星系</td>
+      <td>O(n²)×160 ticks 同步阻塞主线程；与 createNebula 重复实现 category 锚点逻辑</td>
+    </tr>
+    <tr>
+      <td>交互系统<br><span class="file-ref">setupPointerEvents()</span></td>
+      <td><strong style="color:#eab308">7.5</strong></td>
+      <td>Raycaster 命中 InstancedMesh + Sprite 双通道；关联模式点击只返回不切换；dim 节点点击穿透</td>
+      <td>变量名 <code>hoverHighlightNodeId</code> 实为 click 语义，误导；onPointerMove 每帧 raycast 未节流</td>
+    </tr>
+    <tr>
+      <td>控制面板<br><span class="file-ref">ControlPanel.tsx</span></td>
+      <td><strong style="color:#22c55e">8.0</strong></td>
+      <td>手风琴折叠、数据集切换、权重阈值、分类筛选、力参数滑块、JSON 导入、分享——功能全面</td>
+      <td>未用 React.memo，父组件 config 变化时全量重渲染；JSON 导入无结构深度校验</td>
+    </tr>
+    <tr>
+      <td>URL 分享<br><span class="file-ref">urlSharing.ts</span></td>
+      <td><strong style="color:#22c55e">8.5</strong></td>
+      <td>Base64+encodeURIComponent 编码，纯 hash 无后端，decode 有 try-catch</td>
+      <td>仅编码 datasetKey/minWeight/hiddenCategories，config 中声明的 cameraPos/encodeCameraState 未实现</td>
+    </tr>
+    <tr>
+      <td>录制与导出<br><span class="file-ref">Graph3DCanvas 内</span></td>
+      <td><strong style="color:#eab308">7.0</strong></td>
+      <td>MP4 优先 WebM 降级、5/10/15s 预设、PNG 截图，preserveDrawingBuffer 保证了截图质量</td>
+      <td>录制 interval 在组件卸载时未清理（内存泄漏风险）；preservDrawingBuffer 全局性能损耗</td>
+    </tr>
+    <tr>
+      <td>数据集<br><span class="file-ref">datasets.ts</span></td>
+      <td><strong style="color:#22c55e">8.0</strong></td>
+      <td>心理学 102 节点数据精心编排，6 大流派分类，有非对称测试集</td>
+      <td>数据内联在源码（337行），大数据集应改为 JSON 异步加载</td>
+    </tr>
+    <tr>
+      <td>类型系统<br><span class="file-ref">types.ts</span></td>
+      <td><strong style="color:#f97316">6.0</strong></td>
+      <td>接口定义清晰，Config 结构层次合理</td>
+      <td>多个 config 字段声明但从未使用（bloomIntensity/floatAnimation/minWidth/maxWidth/urlEncoding 等）；simNodes 用 <code>any[]</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ========== 问题清单 ========== -->
+<h2>三、问题清单（按优先级）</h2>
+
+<h3>P0 — 建议立即修复</h3>
+
+<div class="issue issue-p0">
+  <div class="issue-title"><span class="issue-tag tag-p0">P0</span> 录制 interval 未在卸载时清理 — 内存泄漏</div>
+  <div class="issue-detail">
+    <code>recordingTimeoutRef.current</code> 持有的 <code>setInterval</code> 在组件卸载时未被 <code>clearInterval</code>。
+    若用户在录制中切换数据集（触发 useEffect 重跑），旧 interval 会继续跑并操作已卸载的 state。
+    <br><span class="file-ref">Graph3DCanvas.tsx:1497-1509</span>
+  </div>
+</div>
+
+<div class="issue issue-p0">
+  <div class="issue-title"><span class="issue-tag tag-p0">P0</span> Toast setTimeout 未清理</div>
+  <div class="issue-detail">
+    App.tsx 中 <code>setTimeout(() => setShowRestoredNotice(false), 5000)</code> 未存 ref、未在卸载时清除。
+    <br><span class="file-ref">App.tsx:97</span>
+  </div>
+</div>
+
+<h3>P1 — 应在近期迭代修复</h3>
+
+<div class="issue issue-p1">
+  <div class="issue-title"><span class="issue-tag tag-p1">P1</span> Graph3DCanvas.tsx God 组件 — 1673 行</div>
+  <div class="issue-detail">
+    单文件包含：纹理生成、力导向算法、星云创建、连线创建、标签创建、指针事件、场景清理、渲染循环、录制逻辑、截图逻辑、tooltip 定位。
+    任何一个子模块的修改都要在 1673 行里定位。建议拆分为 <code>renderers/</code>、<code>layout/</code>、<code>interaction/</code>、<code>media/</code> 子目录。
+  </div>
+</div>
+
+<div class="issue issue-p1">
+  <div class="issue-title"><span class="issue-tag tag-p1">P1</span> 大量 <code>any</code> 类型 — 类型安全形同虚设</div>
+  <div class="issue-detail">
+    <code>simNodes: any[]</code>、<code>edge: any</code>、<code>node: any</code>、<code>as any</code> 强转 labelScale/dimFactor。
+    力导向模拟产出的 SimNode 有 rx/ry/rz/hoverFactor/neighborFactor/dimFactor 等运行时字段，但完全没有类型定义。
+    建议定义 <code>interface SimNode extends GraphNode { rx,ry,rz,hoverFactor,... }</code>。
+    <br><span class="file-ref">Graph3DCanvas.tsx:153, 541, 574, 1096, 1361</span>
+  </div>
+</div>
+
+<div class="issue issue-p1">
+  <div class="issue-title"><span class="issue-tag tag-p1">P1</span> 渲染循环每帧分配 — GC 压力</div>
+  <div class="issue-detail">
+    每帧 <code>new Uint8Array(simNodes.length)</code>（culledNodes）、<code>new Set&lt;string&gt;()</code>（firstDegreeSet）。
+    102 节点 × 60fps = 6120 次/秒分配。应提升为模块级复用 buffer。
+    <br><span class="file-ref">Graph3DCanvas.tsx:1055, 1058</span>
+  </div>
+</div>
+
+<div class="issue issue-p1">
+  <div class="issue-title"><span class="issue-tag tag-p1">P1</span> InstancedMesh + Sprite 每帧全量 needsUpdate</div>
+  <div class="issue-detail">
+    即使节点 lerp 已收敛、相机静止，<code>instanceMatrix.needsUpdate = true</code> 和 102 个 Sprite 的 position/scale/opacity 仍每帧写入。
+    应检测 maxPosDelta + hover 变化，静止时跳过（与连线按需更新同理）。
+    <br><span class="file-ref">Graph3DCanvas.tsx:1177-1180, 1315-1396</span>
+  </div>
+</div>
+
+<div class="issue issue-p1">
+  <div class="issue-title"><span class="issue-tag tag-p1">P1</span> 力导向 O(n²)×160 同步阻塞</div>
+  <div class="issue-detail">
+    102 节点 = 5151 对 × 160 ticks = 82 万次迭代，在主线程同步执行。切换数据集时有可感知卡顿。
+    数据量增至 500+ 节点时会明显阻塞。应考虑 Web Worker 或增量模拟。
+    <br><span class="file-ref">Graph3DCanvas.tsx:220-279</span>
+  </div>
+</div>
+
+<h3>P2 — 技术债务，择期清理</h3>
+
+<div class="issue issue-p2">
+  <div class="issue-title"><span class="issue-tag tag-p2">P2</span> 大量死代码 — 声明但从未使用的 config 字段</div>
+  <div class="issue-detail">
+    <code>bloomIntensity</code>（无 postprocessing 管线）、<code>floatAnimation</code>、<code>line.minWidth/maxWidth</code>、<code>share.urlEncoding/encodeCameraState/encodeFilterState</code>、<code>export.png.enabled/mp4.enabled</code>、<code>particle.count</code>。
+    这些字段在 types.ts 定义、在 defaultConfig 赋值，但代码中从未读取——给后续维护者造成"已实现"的假象。
+  </div>
+</div>
+
+<div class="issue issue-p2">
+  <div class="issue-title"><span class="issue-tag tag-p2">P2</span> particlePointsRef 残留 — 星空已删但 ref 和清理逻辑还在</div>
+  <div class="issue-detail">
+    <code>particlePointsRef</code> 永远为 null（starfield 已删），但 ref 声明、cleanupScene 参数和清理分支仍在。
+    <br><span class="file-ref">Graph3DCanvas.tsx:755, 640, 669-677</span>
+  </div>
+</div>
+
+<div class="issue issue-p2">
+  <div class="issue-title"><span class="issue-tag tag-p2">P2</span> 未使用的 import</div>
+  <div class="issue-detail">
+    <code>Star</code>（App.tsx）、<code>RefreshCw, Eye, Maximize</code>（Graph3DCanvas.tsx）、<code>Check</code>（ControlPanel.tsx）。
+  </div>
+</div>
+
+<div class="issue issue-p2">
+  <div class="issue-title"><span class="issue-tag tag-p2">P2</span> DOM 反模式 — document.getElementById + .click()</div>
+  <div class="issue-detail">
+    Footer 的"Copy Share Link"通过 <code>document.getElementById("btn-share-trigger").click()</code> 触发 ControlPanel 内的分享逻辑。
+    应改为 App 层持有 share 回调，通过 props 传递。
+    <br><span class="file-ref">App.tsx:271-272</span>
+  </div>
+</div>
+
+<div class="issue issue-p2">
+  <div class="issue-title"><span class="issue-tag tag-p2">P2</span> 命名语义偏差</div>
+  <div class="issue-detail">
+    <code>hoverHighlightNodeId</code> / <code>hoveredNode</code> / <code>hoveredPos</code> 实际是<strong>点击</strong>触发的状态，但命名为"hover"。
+    <code>hoverIntensityRef</code> 声明了但从未使用。
+  </div>
+</div>
+
+<div class="issue issue-p2">
+  <div class="issue-title"><span class="issue-tag tag-p2">P2</span> category 锚点逻辑重复实现</div>
+  <div class="issue-detail">
+    <code>computeForceLayout</code> 和 <code>createNebula</code> 各自独立计算了一套完全相同的球面均匀分布锚点。应提取为公共函数。
+    <br><span class="file-ref">Graph3DCanvas.tsx:165-179 vs 360-371</span>
+  </div>
+</div>
+
+<h3>P3 — 优化建议</h3>
+
+<div class="issue issue-p3">
+  <div class="issue-title"><span class="issue-tag tag-p3">P3</span> 无 Error Boundary</div>
+  <div class="issue-detail">Graph3DCanvas 崩溃（如 WebGL context lost）会导致整页白屏。建议包裹 ErrorBoundary 显示降级 UI。</div>
+</div>
+
+<div class="issue issue-p3">
+  <div class="issue-title"><span class="issue-tag tag-p3">P3</span> 无可访问性</div>
+  <div class="issue-detail">按钮无 aria-label、3D 画布无键盘导航、无 focus 管理。开源项目应考虑基础 a11y。</div>
+</div>
+
+<div class="issue issue-p3">
+  <div class="issue-title"><span class="issue-tag tag-p3">P3</span> JSON 导入校验过浅</div>
+  <div class="issue-detail">
+    只检查 nodes/edges 是 Array，不检查 id 唯一性、weight 范围、edge.source/target 是否存在于 nodes 中。恶意/错误 JSON 可能导致渲染异常。
+  </div>
+</div>
+
+<div class="issue issue-p3">
+  <div class="issue-title"><span class="issue-tag tag-p3">P3</span> 版本号不一致</div>
+  <div class="issue-detail">
+    package.json <code>"version": "0.1.0"</code>，UI 显示 <code>v0.1</code>，git tag 有 <code>v0.1 / v0.1.1 / v0.1.2</code>。应统一从 package.json 读取。
+  </div>
+</div>
+
+<!-- ========== 产品展望 ========== -->
+<h2>四、未来产品展望</h2>
+
+<div class="summary-box">
+  <h3>核心判断</h3>
+  <p>这个项目的<strong>护城河不是技术复杂度，而是"视觉冲击 × 话题性 × 一行嵌入"的传播三角</strong>。当前 MVP 已验证了视觉表现力，下一步应该围绕<strong>降低嵌入门槛</strong>和<strong>扩大话题覆盖</strong>两个轴展开，而不是继续堆功能。</p>
+</div>
+
+<div class="roadmap">
+
+  <div class="roadmap-item">
+    <div class="roadmap-phase">Phase 1<br>v0.2</div>
+    <div class="roadmap-content">
+      <h4>工程化加固 + npm 封装</h4>
+      <p>拆分 God 组件、清理死代码、补类型定义、提取 <code>&lt;RelationGraph3D data={} /&gt;</code> 为独立 npm 包（<code>@your/relation-graph-3d</code>）。这是开源传播的基础——别人 <code>npm install</code> 后一行能用，才会 Star。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-phase">Phase 2<br>v0.3</div>
+    <div class="roadmap-content">
+      <h4>话题性数据集矩阵</h4>
+      <p>心理学图谱是好的开始，但传播需要多个话题入口：三国人物关系、漫威宇宙、硅谷公司投资链、《三体》人物网络、Linux 内核模块依赖。每个数据集就是一个社交媒体话题。数据集改为 JSON 异步加载，支持 URL 参数直接指定 <code>?dataset=sanguo</code>。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-phase">Phase 3<br>v0.4</div>
+    <div class="roadmap-content">
+      <h4>README 首屏动图 + 在线 Demo</h4>
+      <p>README 的第一屏放一个 10 秒循环 WebM（三国图谱旋转+点击高亮+星云隐藏），比任何文字描述都有说服力。部署到 GitHub Pages，URL 分享链路打通。这是 Star 转化的单一最重要资产。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-phase">Phase 4<br>v0.5</div>
+    <div class="roadmap-content">
+      <h4>性能优化第二波</h4>
+      <p>力导向迁移 Web Worker（不阻塞 UI）、InstancedMesh/Sprite 按需更新（静止帧跳过）、可选 Bloom 后处理（用 postprocessing 库替代当前 fake glow）、LOD 距离自适应。目标：500 节点流畅 60fps。</p>
+    </div>
+  </div>
+
+  <div class="roadmap-item">
+    <div class="roadmap-phase">Phase 5<br>v1.0</div>
+    <div class="roadmap-content">
+      <h4>生态扩展</h4>
+      <p>Vue 组件封装（vue-relation-graph-3d）、iframe 嵌入模式（给非前端用户）、CSV/Excel 导入（给数据分析师）、主题切换（亮色/暗色/赛博朋克）。此时项目已具备开源社区项目的完整形态。</p>
+    </div>
+  </div>
+
+</div>
+
+<h3>不建议做的事</h3>
+<div class="issue issue-p1">
+  <div class="issue-detail">
+    <strong>不要加后端。</strong>纯静态部署是核心卖点，一旦需要服务器就丧失了 GitHub Pages / Cloudflare Pages 的零成本传播优势。<br>
+    <strong>不要加在线编辑器。</strong>这是可视化工具，不是 IDE。编辑需求交给 JSON 导入。<br>
+    <strong>不要过早抽象插件系统。</strong>当前用户量为 0，插件系统是过度设计。
+  </div>
+</div>
+
+<div class="footer">
+  审查工具：源码通读 + tsc --noEmit + grep 静态分析 · 生成于 2026-06-26
+</div>
+
+</div>
+</body>
+</html>

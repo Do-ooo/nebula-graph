@@ -1,0 +1,18 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+
+# Code review / analysis artifacts
+code-review-report.html
+*.review.md
+
+# Package manager — this project uses npm
+npm-debug.log*
+
+# Local tooling
+.workbuddy/
+.claude/
